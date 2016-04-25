@@ -81,7 +81,7 @@ class GPU_data():
       return string_res
       
       
-      
+#testing purposes     
 def main():
 
       

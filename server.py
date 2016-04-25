@@ -1,6 +1,8 @@
 import rpyc
 import GPU_utilities as GPU_inf
 
+
+
 class GPUAvalaibleService(rpyc.Service):
     def exposed_gpu_selector(self):
 	GPU_id = 0
