@@ -73,7 +73,13 @@ class GPU_data():
       num_processes= self.obtain_executing_processes(device_number)
       self.set_processes_executing(num_processes)
 
-      
+    def obtain_updated_free_memory(self):
+      cuda.init()
+      device = cuda.Device(self.device_number)
+      contx = device.make_context()
+      (free,total)=cuda.mem_get_info()
+      self.set_free_memory(free)
+      contx.pop()	      
       
     def __repr__(self):
        #static processes
