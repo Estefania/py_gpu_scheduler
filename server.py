@@ -11,12 +11,14 @@ def customize_policy(chose_pol):
 	return -1
     class GPUAvalaibleService(rpyc.Service):
     	policy=policy_chosen
-    	def exposed_gpu_selector(self,task_id):	
-		return self.policy.update_next(task_id)
+    	def exposed_gpu_selector(self,task_id, memory):	
+		return self.policy.update_next(task_id, memory)
         	#return linenum + 1
-        
+       	def exposed_gpu_finish(self, task_id): 
+		error=self.policy.remove_from_queue(task_id)
+		return error
     	def exposed_gpu_options(self):
-      		return GPU_inf.GPU_data(0)
+      		return GPU_inf.GPU_data
     return GPUAvalaibleService
 '''Function in charge of starting a threaded server
 It receives the port port_number'''
