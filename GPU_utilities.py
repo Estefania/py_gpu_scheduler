@@ -78,7 +78,7 @@ class GPU_data():
       device = cuda.Device(self.device_number)
       contx = device.make_context()
       (free,total)=cuda.mem_get_info()
-      self.set_free_memory(free)
+      self.set_free_memory(free*0.8)
       contx.pop()	      
       
     def __repr__(self):

@@ -32,17 +32,23 @@ class GPU_Policy():
     def insert_into_queue(self, task_id, gpu_number):
       if task_id not in self.queue_tasks:
 	self.queue_tasks[task_id] = gpu_number
+	print str(self.queue_tasks)
 	return 0
       else:
+	self.queue_tasks[task_id] = gpu_number
 	print '[ERROR][INSERT_INTO_QUEUE] Task_id already present in queue.\n'
 	return -1
       
     def remove_from_queue(self, task_id):
       self.condition_gpu_avail.acquire()		
       if task_id in self.queue_tasks:
+	gpu_num,task_mem = self.queue_tasks[task_id]
 	del self.queue_tasks[task_id]
+	self.gpu_list[gpu_num].free_memory = self.gpu_list[gpu_num].free_memory + task_mem 
+	print str(self.queue_tasks)
 	self.condition_gpu_avail.notify()
 	self.condition_gpu_avail.release()
+        
 	return 0
       else:
 	print '[ERROR][REMOVE_FROM_QUEUE] Task_id not present in queue.\n'
@@ -51,29 +57,22 @@ class GPU_Policy():
 
 
 class Round_Policy(GPU_Policy):
-    def update_next(self, task_id):
+    def update_next(self, task_id,task_mem):
       self.condition_gpu_avail.acquire()
       next_dev_loc= (self.next_dev+1)%self.number_gpus
-      next_dev_loc= gpu_number
-      next_gpu= ((next_dev_loc+1)% self.number_gpus)
       #there is not enough memory for task in that gpu, changing to round_robin
         #check the following one 
       num_gpus_search = 0
-      while next_gpu != next_dev_loc or (self.number_gpus == 1 and num_gpus_search==0):
-        gpu_chosen= self.gpu_list[next_gpu]
-        gpu_chosen.obtain_updated_free_memory()
-        if gpu_chosen.free_memory < task_mem:
-                next_gpu= ((next_dev_loc+1)% self.number_gpus)
-                num_gpus_search = num_gpus_search +1
-                if(num_gpus_search==self.number_gpus):
-                        self.condition_gpu_avail.wait()#There is none available      
-                        num_gpus_search=0
-                else:
-                        next_dev_loc = next_gpu
-	num_gpus_search= num_gpus_search+1
-	next_dev_loc = next_gpu	
+      while self.gpu_list[next_dev_loc].free_memory <= task_mem:
+      	num_gpus_search = num_gpus_search+1
+	if num_gpus_search == self.number_gpus:
+		self.condition_gpu_avail.wait()#There is none available
+		num_gpus_search=0
+	next_dev_loc=(next_dev_loc+1)%self.number_gpus 
 
-      error=self.insert_into_queue(task_id, next_dev_loc)
+      self.next_dev = next_dev_loc
+      self.gpu_list[next_dev_loc].free_memory = self.gpu_list[next_dev_loc].free_memory-task_mem
+      error=self.insert_into_queue(task_id, [next_dev_loc, task_mem])
       self.condition_gpu_avail.release()
       return next_dev_loc
 
@@ -83,7 +82,7 @@ class Round_Policy(GPU_Policy):
 class IsEmpty_Policy(GPU_Policy):
 
     def count_process_GPU(self,num_dev):
-      return sum(1 for x in self.queue_tasks.values() if x==num_dev)
+      return sum(1 for x in self.queue_tasks.values() if x[0]==num_dev)
     
     def update_next(self, task_id,task_mem):
       import sys
@@ -96,25 +95,19 @@ class IsEmpty_Policy(GPU_Policy):
 		min_processes_gpu = num_proc
 		gpu_number = i
       next_dev_loc= gpu_number
-      next_gpu= ((next_dev_loc+1)% self.number_gpus)
       #there is not enough memory for task in that gpu, changing to round_robin
         #check the following one 
       num_gpus_search = 0
-      while next_gpu != next_dev_loc or (self.number_gpus == 1 and num_gpus_search==0):
-      	gpu_chosen= self.gpu_list[next_gpu]
-      	gpu_chosen.obtain_updated_free_memory()
-      	if gpu_chosen.free_memory < task_mem:
-      		next_gpu= ((next_dev_loc+1)% self.number_gpus)
-      		num_gpus_search = num_gpus_search +1
-      		if(num_gpus_search==self.number_gpus):
-      			self.condition_gpu_avail.wait()#There is none available      
-			num_gpus_search=0                        
-                else:
-                        next_dev_loc = next_gpu
-	num_gpus_search= num_gpus_search+1
-	next_dev_loc = next_gpu
 
-      error=self.insert_into_queue(task_id, next_dev_loc)
+      while self.gpu_list[next_dev_loc].free_memory <= task_mem:
+        num_gpus_search = num_gpus_search+1
+        if num_gpus_search == self.number_gpus:
+                self.condition_gpu_avail.wait()#There is none available
+                num_gpus_search=0
+        next_dev_loc=(next_dev_loc+1)%self.number_gpus
+
+      self.gpu_list[next_dev_loc].free_memory = self.gpu_list[next_dev_loc].free_memory-task_mem
+      error=self.insert_into_queue(task_id, [next_dev_loc, task_mem])
       self.condition_gpu_avail.release()
       return next_dev_loc
 class Random_Policy(GPU_Policy):
@@ -122,28 +115,22 @@ class Random_Policy(GPU_Policy):
       GPU_Policy.__init__(self)
       random.seed()
     def update_next(self, task_id, task_mem):
-      slef.condition_gpu_avail.acquire()
+      self.condition_gpu_avail.acquire()
       #Update dynamic data of the GPU
       next_dev_loc= random.randint(0, self.number_gpus-1)
-      next_gpu= ((next_dev_loc+1)% self.number_gpus)
       #there is not enough memory for task in that gpu, changing to round_robin
         #check the following one 
       num_gpus_search = 0
-      while next_gpu != next_dev_loc or (self.number_gpus == 1 and num_gpus_search==0):
-        gpu_chosen= self.gpu_list[next_gpu]
-        gpu_chosen.obtain_updated_free_memory()
-        if gpu_chosen.free_memory < task_mem:
-                next_gpu= ((next_dev_loc+1)% self.number_gpus)
-                num_gpus_search = num_gpus_search +1
-                if(num_gpus_search==self.number_gpus):
-                        self.condition_gpu_avail.wait()#There is none available      
-                        num_gpus_search=0
-                else:
-                        next_dev_loc = next_gpu
-	num_gpus_search= num_gpus_search+1
-	next_dev_loc = next_gpu
 
-      error=self.insert_into_queue(task_id, next_dev_loc)
+      while self.gpu_list[next_dev_loc].free_memory <= task_mem:
+        num_gpus_search = num_gpus_search+1
+        if num_gpus_search == self.number_gpus:
+                self.condition_gpu_avail.wait()#There is none available
+                num_gpus_search=0
+        next_dev_loc=(next_dev_loc+1)%self.number_gpus
+
+      self.gpu_list[next_dev_loc].free_memory = self.gpu_list[next_dev_loc].free_memory-task_mem
+      error=self.insert_into_queue(task_id, [next_dev_loc, task_mem])
       self.condition_gpu_avail.release()
       return next_dev_loc
  

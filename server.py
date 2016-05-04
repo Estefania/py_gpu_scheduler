@@ -23,11 +23,11 @@ def customize_policy(chose_pol):
 '''Function in charge of starting a threaded server
 It receives the port port_number'''
 def start_server(port_number, gpu_opt):
-  from rpyc.utils.server import ThreadedServer
+  from rpyc.utils.server import ThreadPoolServer
   print str(gpu_opt)
   GPUService = customize_policy(gpu_opt)
   if not isinstance(GPUService,int):
-  	t = ThreadedServer(GPUService, port = port_number )
+  	t = ThreadPoolServer(GPUService, port = port_number,reuse_addr=True,listener_timeout=None )
   	print 'Starting server:'
 	t.start()
   else:
@@ -35,6 +35,6 @@ def start_server(port_number, gpu_opt):
   
 def main(argv):
   gpu_opt = int(argv[1])
-  start_server(15000, gpu_opt)
+  start_server(8888, gpu_opt)
   
 if __name__ == "__main__": main(sys.argv)
