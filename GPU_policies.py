@@ -18,6 +18,7 @@ class GPU_Policy():
 	for devicenum in range(self.number_gpus):
 	  gpu_obj=GPU_utilities.GPU_data(devicenum)
 	  self.gpu_list.append(gpu_obj)
+	  print str(gpu_obj)
 	self.condition_gpu_avail = threading.Condition()
 
 
@@ -40,9 +41,11 @@ class GPU_Policy():
 	return -1
       
     def remove_from_queue(self, task_id):
+      print 'Trying to remove from queue\n'
       self.condition_gpu_avail.acquire()		
       if task_id in self.queue_tasks:
 	gpu_num,task_mem = self.queue_tasks[task_id]
+	print 'Removing from queue '+str(task_id)
 	del self.queue_tasks[task_id]
 	self.gpu_list[gpu_num].free_memory = self.gpu_list[gpu_num].free_memory + task_mem 
 	print str(self.queue_tasks)

@@ -56,7 +56,7 @@ class GPU_data():
     
     def obtain_static_info(self,device,device_number):
       
-      (free,total)=cuda.mem_get_info()
+      (free,total)=cuda.mem_get_info()#(2*1024*1024*1024*0.8, 2*1024*1024*1024)#cuda.mem_get_info()
       dev_data= pycuda.tools.DeviceData(device)
       self.set_device_number(device_number)
       self.set_memory(total)
@@ -67,7 +67,7 @@ class GPU_data():
     def obtain_dynamic_info(self,device,device_number):
       
       
-      (free,total)=cuda.mem_get_info()
+      (free,total)= cuda.mem_get_info()#(2*1024*1024*1024*0.8, 2*1024*1024*1024) #cuda.mem_get_info()
       dev_data= pycuda.tools.DeviceData(device)
       self.set_free_memory(free)
       num_processes= self.obtain_executing_processes(device_number)
@@ -77,7 +77,7 @@ class GPU_data():
       cuda.init()
       device = cuda.Device(self.device_number)
       contx = device.make_context()
-      (free,total)=cuda.mem_get_info()
+      (free,total)=cuda.mem_get_info()#(2*1024*1024*1024*0.8, 2*1024*1024*1024)
       self.set_free_memory(free*0.8)
       contx.pop()	      
       
